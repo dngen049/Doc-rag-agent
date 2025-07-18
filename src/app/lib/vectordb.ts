@@ -1,9 +1,11 @@
 import { ChromaClient, Collection } from "chromadb";
+import { OpenAIEmbeddings } from "@langchain/openai";
 
 class VectorDB {
   private client: ChromaClient;
   private collection: Collection | null = null;
   private collectionName = "documents";
+  private embeddings: OpenAIEmbeddings;
 
   constructor() {
     const chromaPath = process.env.CHROMA_PATH || "http://localhost:8000";
@@ -11,6 +13,12 @@ class VectorDB {
 
     this.client = new ChromaClient({
       path: chromaPath,
+    });
+
+    // Initialize OpenAI embeddings
+    this.embeddings = new OpenAIEmbeddings({
+      openAIApiKey: process.env.OPENAI_API_KEY,
+      modelName: "text-embedding-ada-002",
     });
   }
 
@@ -50,9 +58,13 @@ class VectorDB {
     const texts = documents.map((doc) => doc.content);
     const metadatas = documents.map((doc) => doc.metadata);
 
+    // Generate embeddings for the documents
+    const embeddings = await this.embeddings.embedDocuments(texts);
+
     await this.collection!.add({
       ids,
       documents: texts,
+      embeddings: embeddings,
       metadatas,
     });
   }
@@ -63,12 +75,16 @@ class VectorDB {
     }
 
     try {
-      // For now, return all documents since we don't have embeddings set up
-      const results = await this.collection!.get({
-        limit: k,
+      // Generate embedding for the query
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+
+      // Perform similarity search using embeddings
+      const results = await this.collection!.query({
+        queryEmbeddings: [queryEmbedding],
+        nResults: k,
       });
 
-      return results.documents || [];
+      return results.documents?.[0] || [];
     } catch (error) {
       console.error("Search error:", error);
       return [];
@@ -89,6 +105,58 @@ class VectorDB {
       await this.collection!.delete({
         ids: results.ids,
       });
+    }
+  }
+
+  async getUploadedFiles() {
+    if (!this.collection) {
+      await this.initialize();
+    }
+
+    try {
+      // Get all documents to extract unique filenames
+      const results = await this.collection!.get({
+        limit: 1000, // Get a large number to ensure we get all files
+      });
+
+      if (!results.metadatas || results.metadatas.length === 0) {
+        return [];
+      }
+
+      // Extract unique filenames and their metadata
+      const fileMap = new Map<
+        string,
+        { filename: string; chunks: number; uploadedAt?: string }
+      >();
+
+      results.metadatas.forEach((metadata) => {
+        if (
+          metadata &&
+          typeof metadata === "object" &&
+          "filename" in metadata
+        ) {
+          const filename = metadata.filename as string;
+          if (filename) {
+            if (!fileMap.has(filename)) {
+              fileMap.set(filename, {
+                filename,
+                chunks: 1,
+                uploadedAt:
+                  (metadata as { uploadedAt?: string }).uploadedAt ||
+                  new Date().toISOString(),
+              });
+            } else {
+              const existing = fileMap.get(filename)!;
+              existing.chunks += 1;
+            }
+          }
+        }
+      });
+
+      return Array.from(fileMap.values());
+    } catch (error) {
+      console.error("Error getting uploaded files:", error);
+      return [];
     }
   }
 }

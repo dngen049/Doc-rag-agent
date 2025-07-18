@@ -39,14 +39,10 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
   };
 
   const handleFileUpload = async (file: File) => {
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-    ];
+    const allowedTypes = ["text/plain", "text/markdown", "text/x-markdown"];
 
     if (!allowedTypes.includes(file.type)) {
-      setUploadStatus("Error: Please upload a PDF, DOCX, or TXT file.");
+      setUploadStatus("Error: Please upload a TXT or MD file.");
       return;
     }
 
@@ -127,14 +123,14 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
                 <input
                   type="file"
                   className="hidden"
-                  accept=".pdf,.docx,.txt"
+                  accept=".txt,.md,.markdown"
                   onChange={handleFileSelect}
                   disabled={isUploading}
                 />
               </label>
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              Supports PDF, DOCX, and TXT files (max 10MB)
+              Supports TXT and MD files (max 10MB)
             </p>
           </div>
         </div>

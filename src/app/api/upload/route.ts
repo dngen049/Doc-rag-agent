@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractTextFromBuffer } from "../../utils/textExtract";
+import { vectorDB } from "../../lib/vectordb";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,18 +12,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = [
-      "application/pdf",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "text/plain",
-    ];
+    const allowedTypes = ["text/plain", "text/markdown", "text/x-markdown"];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        {
-          error:
-            "Invalid file type. Please upload PDF, DOCX, or TXT files only.",
-        },
+        { error: "Invalid file type. Please upload TXT or MD files only." },
         { status: 400 }
       );
     }
@@ -34,20 +29,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Implement actual file processing
-    // - Extract text from PDF/DOCX/TXT
-    // - Split into chunks
-    // - Generate embeddings
-    // - Store in ChromaDB
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Extract text and create chunks
+    const chunks = await extractTextFromBuffer(buffer, file.name, file.type);
+
+    // Store chunks in vector database
+    await vectorDB.addDocuments(chunks);
 
     return NextResponse.json({
-      message: "File uploaded successfully",
+      message: "File uploaded and processed successfully",
       filename: file.name,
       size: file.size,
       type: file.type,
+      chunks: chunks.length,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
