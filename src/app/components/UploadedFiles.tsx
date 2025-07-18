@@ -20,6 +20,7 @@ export default function UploadedFiles({
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
 
   const fetchFiles = async () => {
     try {
@@ -70,6 +71,40 @@ export default function UploadedFiles({
         return "📝";
       default:
         return "📁";
+    }
+  };
+
+  const handleDeleteFile = async (filename: string) => {
+    if (deletingFiles.has(filename)) return;
+
+    try {
+      setDeletingFiles((prev) => new Set(prev).add(filename));
+
+      const response = await fetch(
+        `/api/files/${encodeURIComponent(filename)}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        // Remove the file from the local state
+        setFiles((prev) => prev.filter((file) => file.filename !== filename));
+      } else {
+        const errorData = await response.json();
+        setError(
+          `Failed to delete file: ${errorData.error || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      setError("Error deleting file");
+      console.error("Error deleting file:", error);
+    } finally {
+      setDeletingFiles((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(filename);
+        return newSet;
+      });
     }
   };
 
@@ -151,11 +186,29 @@ export default function UploadedFiles({
                     </div>
                   </div>
                 </div>
-                {onFileSelect && (
-                  <button className="text-blue-500 hover:text-blue-600 text-xs">
-                    Select
+                <div className="flex items-center space-x-2">
+                  {onFileSelect && (
+                    <button className="text-blue-500 hover:text-blue-600 text-xs">
+                      Select
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteFile(file.filename);
+                    }}
+                    disabled={deletingFiles.has(file.filename)}
+                    className={`text-xs transition-colors ${
+                      deletingFiles.has(file.filename)
+                        ? "text-gray-400 cursor-not-allowed"
+                        : "text-red-500 hover:text-red-600"
+                    }`}
+                  >
+                    {deletingFiles.has(file.filename)
+                      ? "Deleting..."
+                      : "Delete"}
                   </button>
-                )}
+                </div>
               </div>
             </div>
           ))}
