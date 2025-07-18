@@ -85,8 +85,32 @@ export default function ChatWindow() {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-500 mt-8">
-            <p>No messages yet. Start a conversation!</p>
+          <div className="text-center text-gray-500 mt-8 space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mx-4">
+              <h3 className="font-semibold text-blue-800 mb-2">
+                Welcome to Document Q&A! 📚
+              </h3>
+              <p className="text-blue-700 text-sm mb-3">
+                I&apos;m here to help you understand your documents. Here&apos;s
+                how to get started:
+              </p>
+              <ul className="text-blue-600 text-sm space-y-1 text-left">
+                <li>• Upload a TXT file using the form on the left</li>
+                <li>• Ask me questions about the content</li>
+                <li>
+                  • I&apos;ll search through your documents and provide relevant
+                  answers
+                </li>
+                <li>
+                  • I remember our conversation, so feel free to ask follow-up
+                  questions!
+                </li>
+              </ul>
+              <p className="text-blue-700 text-sm mt-3">
+                Try asking: &quot;What documents have been uploaded?&quot; or
+                &quot;Can you summarize the main points?&quot;
+              </p>
+            </div>
           </div>
         ) : (
           messages.map((message) => (

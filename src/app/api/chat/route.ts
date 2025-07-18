@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { langChainService } from "../../lib/langchain";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,15 +12,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // TODO: Implement actual LangChain integration
-    // For now, return a mock response
-    const mockResponse = `I received your message: "${message}". This is a mock response. The actual implementation will use LangChain to process your document and provide relevant answers.`;
-
-    // Simulate some processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    // Use LangChain service for RAG-based chat
+    const response = await langChainService.chatWithRAG(message);
 
     return NextResponse.json({
-      response: mockResponse,
+      response,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
