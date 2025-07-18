@@ -10,17 +10,26 @@ interface UploadedFile {
 
 interface UploadedFilesProps {
   onFileSelect?: (filename: string) => void;
+  onMultiSelect?: (filenames: string[]) => void;
+  selectedFiles?: string[];
   refreshTrigger?: number;
+  multiSelectMode?: boolean;
 }
 
 export default function UploadedFiles({
   onFileSelect,
+  onMultiSelect,
+  selectedFiles = [],
   refreshTrigger,
+  multiSelectMode = false,
 }: UploadedFilesProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
+  const [selectedFileSet, setSelectedFileSet] = useState<Set<string>>(
+    new Set(selectedFiles)
+  );
 
   const fetchFiles = async () => {
     try {
@@ -45,6 +54,10 @@ export default function UploadedFiles({
   useEffect(() => {
     fetchFiles();
   }, [refreshTrigger]);
+
+  useEffect(() => {
+    setSelectedFileSet(new Set(selectedFiles));
+  }, [selectedFiles]);
 
   const formatDate = (dateString: string) => {
     try {
@@ -90,6 +103,15 @@ export default function UploadedFiles({
       if (response.ok) {
         // Remove the file from the local state
         setFiles((prev) => prev.filter((file) => file.filename !== filename));
+        // Remove from selected files if it was selected
+        setSelectedFileSet((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(filename);
+          return newSet;
+        });
+        onMultiSelect?.(
+          Array.from(selectedFileSet).filter((f) => f !== filename)
+        );
       } else {
         const errorData = await response.json();
         setError(
@@ -108,12 +130,24 @@ export default function UploadedFiles({
     }
   };
 
+  const handleFileToggle = (filename: string) => {
+    if (multiSelectMode) {
+      const newSelectedSet = new Set(selectedFileSet);
+      if (newSelectedSet.has(filename)) {
+        newSelectedSet.delete(filename);
+      } else {
+        newSelectedSet.add(filename);
+      }
+      setSelectedFileSet(newSelectedSet);
+      onMultiSelect?.(Array.from(newSelectedSet));
+    } else {
+      onFileSelect?.(filename);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-lg border p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Uploaded Files
-        </h3>
+      <div>
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
           <span className="ml-2 text-sm text-gray-600">Loading files...</span>
@@ -124,10 +158,7 @@ export default function UploadedFiles({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-lg border p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          Uploaded Files
-        </h3>
+      <div>
         <div className="text-center py-4">
           <p className="text-red-600 text-sm">{error}</p>
           <button
@@ -142,10 +173,10 @@ export default function UploadedFiles({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg border p-4">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">
-        Uploaded Files ({files.length})
-      </h3>
+    <div>
+      <div className="text-sm text-gray-600 mb-4">
+        {files.length} file{files.length !== 1 ? "s" : ""} uploaded
+      </div>
 
       {files.length === 0 ? (
         <div className="text-center py-6">
@@ -161,11 +192,13 @@ export default function UploadedFiles({
             <div
               key={index}
               className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                onFileSelect
+                multiSelectMode && selectedFileSet.has(file.filename)
+                  ? "bg-blue-50 border-blue-300"
+                  : onFileSelect
                   ? "hover:bg-gray-50 border-gray-200"
                   : "border-gray-200"
               }`}
-              onClick={() => onFileSelect?.(file.filename)}
+              onClick={() => handleFileToggle(file.filename)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
@@ -187,7 +220,17 @@ export default function UploadedFiles({
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  {onFileSelect && (
+                  {multiSelectMode && (
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedFileSet.has(file.filename)}
+                        onChange={() => handleFileToggle(file.filename)}
+                        className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    </div>
+                  )}
+                  {onFileSelect && !multiSelectMode && (
                     <button className="text-blue-500 hover:text-blue-600 text-xs">
                       Select
                     </button>

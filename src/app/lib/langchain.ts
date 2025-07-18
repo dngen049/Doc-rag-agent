@@ -40,7 +40,10 @@ class LangChainService {
     });
   }
 
-  async chatWithRAG(userMessage: string): Promise<string> {
+  async chatWithRAG(
+    userMessage: string,
+    selectedDocuments?: string[]
+  ): Promise<string> {
     try {
       // Check if this is a system-level question about the app
       const systemQuestions = [
@@ -60,16 +63,33 @@ class LangChainService {
       );
 
       // 1. Retrieve relevant context from vector database
-      const relevantDocs = await vectorDB.search(userMessage, 5);
+      let relevantDocs: (string | null)[] = [];
+
+      if (selectedDocuments && selectedDocuments.length > 0) {
+        // Search within selected documents only
+        relevantDocs = await vectorDB.searchInDocuments(
+          userMessage,
+          selectedDocuments,
+          5
+        );
+      } else {
+        // Search across all documents (fallback behavior)
+        relevantDocs = await vectorDB.search(userMessage, 5);
+      }
+
+      // Filter out null values and ensure we have strings
+      const filteredDocs = relevantDocs.filter(
+        (doc): doc is string => doc !== null
+      );
 
       // 2. Combine context with conversation history
       let context =
-        relevantDocs.length > 0
-          ? relevantDocs.join("\n\n")
+        filteredDocs.length > 0
+          ? filteredDocs.join("\n\n")
           : "No relevant document context found.";
 
       // For system questions, provide app information even without documents
-      if (isSystemQuestion && relevantDocs.length === 0) {
+      if (isSystemQuestion && filteredDocs.length === 0) {
         context =
           "This is a Document Q&A application. Users can upload documents and ask questions about them.";
       }

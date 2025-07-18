@@ -10,7 +10,13 @@ interface Message {
   timestamp: Date;
 }
 
-export default function ChatWindow() {
+interface ChatWindowProps {
+  selectedDocuments?: string[];
+}
+
+export default function ChatWindow({
+  selectedDocuments = [],
+}: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -36,7 +42,11 @@ export default function ChatWindow() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message: inputValue }),
+        body: JSON.stringify({
+          message: inputValue,
+          selectedDocuments:
+            selectedDocuments.length > 0 ? selectedDocuments : undefined,
+        }),
       });
 
       if (response.ok) {
@@ -79,8 +89,24 @@ export default function ChatWindow() {
           Document Q&A Chat
         </h2>
         <p className="text-sm text-gray-600">
-          Ask questions about your uploaded documents
+          {selectedDocuments.length > 0
+            ? `Chatting with ${selectedDocuments.length} selected document${
+                selectedDocuments.length !== 1 ? "s" : ""
+              }`
+            : "Ask questions about your uploaded documents"}
         </p>
+        {selectedDocuments.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {selectedDocuments.map((doc, index) => (
+              <span
+                key={index}
+                className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+              >
+                {doc}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Messages Area */}

@@ -91,6 +91,35 @@ class VectorDB {
     }
   }
 
+  async searchInDocuments(
+    query: string,
+    documentNames: string[],
+    k: number = 5
+  ) {
+    if (!this.collection) {
+      await this.initialize();
+    }
+
+    try {
+      // Generate embedding for the query
+      const queryEmbedding = await this.embeddings.embedQuery(query);
+
+      // Perform similarity search using embeddings, filtered by document names
+      const results = await this.collection!.query({
+        queryEmbeddings: [queryEmbedding],
+        nResults: k,
+        where: {
+          filename: { $in: documentNames },
+        },
+      });
+
+      return results.documents?.[0] || [];
+    } catch (error) {
+      console.error("Search in documents error:", error);
+      return [];
+    }
+  }
+
   async deleteDocument(filename: string) {
     if (!this.collection) {
       await this.initialize();
