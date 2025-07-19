@@ -31,3 +31,36 @@ export interface DatabaseConfig {
   password: string;
   database: string;
 }
+
+// Schema Discovery Types
+export interface TableColumn {
+  columnName: string;
+  dataType: string;
+  isNullable: string;
+  columnKey: string;
+  columnDefault: string | null;
+  columnComment: string;
+  extra: string;
+}
+
+export interface ForeignKey {
+  columnName: string;
+  referencedTable: string;
+  referencedColumn: string;
+}
+
+export interface TableSchema {
+  tableName: string;
+  tableComment: string;
+  columns: TableColumn[];
+  foreignKeys: ForeignKey[];
+  primaryKeys: string[];
+}
+
+export interface SchemaResponse {
+  success: boolean;
+  schema: TableSchema[];
+  tableCount: number;
+  error?: string;
+  details?: string;
+}

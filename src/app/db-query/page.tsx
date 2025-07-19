@@ -4,7 +4,13 @@ import { useState, useEffect } from "react";
 import {
   DatabaseConnectionForm,
   DatabaseConnectionStatus,
+  TableSchema,
 } from "@/app/types/database";
+import TableSelection from "@/app/components/TableSelection";
+import {
+  generateSchemaContext,
+  generateSchemaSummary,
+} from "@/app/utils/schemaContext";
 
 export default function DatabaseQueryPage() {
   const [formData, setFormData] = useState<DatabaseConnectionForm>({
@@ -24,10 +30,25 @@ export default function DatabaseQueryPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string>("");
 
+  // Phase 2: Schema and table selection state
+  const [schema, setSchema] = useState<TableSchema[]>([]);
+  const [selectedTables, setSelectedTables] = useState<string[]>([]);
+  const [schemaContext, setSchemaContext] = useState<string>("");
+
   // Check connection status on component mount
   useEffect(() => {
     checkConnectionStatus();
   }, []);
+
+  // Update schema context when selected tables change
+  useEffect(() => {
+    if (schema.length > 0 && selectedTables.length > 0) {
+      const context = generateSchemaContext(schema, selectedTables);
+      setSchemaContext(context);
+    } else {
+      setSchemaContext("");
+    }
+  }, [schema, selectedTables]);
 
   const checkConnectionStatus = async () => {
     try {
@@ -98,10 +119,18 @@ export default function DatabaseQueryPage() {
           connected: false,
           message: "Disconnected",
         });
+        // Clear schema data when disconnecting
+        setSchema([]);
+        setSelectedTables([]);
+        setSchemaContext("");
       }
     } catch (error) {
       console.error("Error disconnecting:", error);
     }
+  };
+
+  const handleTablesSelected = (tables: string[]) => {
+    setSelectedTables(tables);
   };
 
   return (
@@ -283,21 +312,50 @@ export default function DatabaseQueryPage() {
             </div>
           )}
 
+          {/* Phase 2: Schema Discovery & Table Selection */}
+          {connectionStatus.connected && (
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                🗂️ Schema Discovery & Table Selection
+              </h2>
+
+              <TableSelection onTablesSelected={handleTablesSelected} />
+
+              {/* Schema Context Preview */}
+              {schemaContext && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Generated Schema Context
+                  </h3>
+                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                    <pre className="text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto">
+                      {schemaContext}
+                    </pre>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">
+                    This context will be provided to the AI for generating
+                    accurate SQL queries.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Next Steps */}
           {connectionStatus.connected && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                ✅ Connected Successfully!
+                ✅ Phase 2 Complete!
               </h3>
               <p className="text-blue-700 mb-3">
-                Your database connection is active. In the next phase,
-                you&apos;ll be able to:
+                Schema discovery and table selection are now active. In the next
+                phase, you&apos;ll be able to:
               </p>
               <ul className="text-blue-700 space-y-1">
-                <li>• Explore your database schema</li>
-                <li>• Select tables for AI context</li>
                 <li>• Query your data using natural language</li>
                 <li>• View and visualize results</li>
+                <li>• Get AI-powered insights</li>
+                <li>• Manage query history</li>
               </ul>
             </div>
           )}
