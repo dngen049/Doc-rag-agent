@@ -3,7 +3,8 @@ import { langChainService } from "../../lib/langchain";
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, selectedDocuments } = await request.json();
+    const { message, selectedDocuments, multiSelectMode } =
+      await request.json();
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -15,7 +16,8 @@ export async function POST(request: NextRequest) {
     // Use LangChain service for RAG-based chat with selected documents
     const response = await langChainService.chatWithRAG(
       message,
-      selectedDocuments
+      selectedDocuments,
+      multiSelectMode
     );
 
     return NextResponse.json({

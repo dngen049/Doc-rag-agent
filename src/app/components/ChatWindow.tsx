@@ -12,10 +12,12 @@ interface Message {
 
 interface ChatWindowProps {
   selectedDocuments?: string[];
+  multiSelectMode?: boolean;
 }
 
 export default function ChatWindow({
   selectedDocuments = [],
+  multiSelectMode = false,
 }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -46,6 +48,7 @@ export default function ChatWindow({
           message: inputValue,
           selectedDocuments:
             selectedDocuments.length > 0 ? selectedDocuments : undefined,
+          multiSelectMode: multiSelectMode,
         }),
       });
 

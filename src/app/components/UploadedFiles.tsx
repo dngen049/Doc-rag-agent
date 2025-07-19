@@ -6,6 +6,8 @@ interface UploadedFile {
   filename: string;
   chunks: number;
   uploadedAt?: string;
+  source?: string;
+  title?: string;
 }
 
 interface UploadedFilesProps {
@@ -74,7 +76,11 @@ export default function UploadedFiles({
     }
   };
 
-  const getFileIcon = (filename: string) => {
+  const getFileIcon = (filename: string, source?: string) => {
+    if (source === "web") {
+      return "🌐";
+    }
+
     const extension = filename.split(".").pop()?.toLowerCase();
     switch (extension) {
       case "txt":
@@ -175,15 +181,15 @@ export default function UploadedFiles({
   return (
     <div>
       <div className="text-sm text-gray-600 mb-4">
-        {files.length} file{files.length !== 1 ? "s" : ""} uploaded
+        {files.length} content item{files.length !== 1 ? "s" : ""} available
       </div>
 
       {files.length === 0 ? (
         <div className="text-center py-6">
           <div className="text-gray-400 text-4xl mb-2">📁</div>
-          <p className="text-gray-500 text-sm">No files uploaded yet</p>
+          <p className="text-gray-500 text-sm">No content available yet</p>
           <p className="text-gray-400 text-xs mt-1">
-            Upload a document to get started
+            Upload documents or scrape web content to get started
           </p>
         </div>
       ) : (
@@ -202,10 +208,14 @@ export default function UploadedFiles({
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1 min-w-0">
-                  <span className="text-lg">{getFileIcon(file.filename)}</span>
+                  <span className="text-lg">
+                    {getFileIcon(file.filename, file.source)}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">
-                      {file.filename}
+                      {file.source === "web" && file.title
+                        ? file.title
+                        : file.filename}
                     </p>
                     <div className="flex items-center space-x-4 mt-1">
                       <span className="text-xs text-gray-500">
@@ -213,7 +223,13 @@ export default function UploadedFiles({
                       </span>
                       {file.uploadedAt && (
                         <span className="text-xs text-gray-500">
+                          {file.source === "web" ? "Scraped" : "Uploaded"}{" "}
                           {formatDate(file.uploadedAt)}
+                        </span>
+                      )}
+                      {file.source === "web" && (
+                        <span className="text-xs text-blue-500 bg-blue-100 px-2 py-1 rounded">
+                          Web
                         </span>
                       )}
                     </div>

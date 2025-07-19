@@ -105,6 +105,39 @@ Production-ready app with improved UX and scalability.
 
 ---
 
+### 🌐 **Iteration 5 – Web Scraping**
+
+**Goal:**  
+Enable users to scrape and analyze web content directly within the app.
+
+**Features:**
+
+- [ ] Web Scraping API
+  - POST `/api/scrape` – Scrape content from URLs
+  - Accept single URL or list of URLs
+  - Extract text content, metadata, and links
+  - Handle different content types (articles, blogs, documentation)
+  - Rate limiting and respectful crawling
+- [ ] Web Content Processing
+  - Clean and structure scraped content
+  - Split into chunks for vector storage
+  - Generate embeddings for web content
+  - Store in same ChromaDB with document type tagging
+- [ ] Frontend UI
+  - URL input form for web scraping
+  - Progress indicators for scraping operations
+  - Display scraped content preview
+  - Option to combine web content with uploaded documents
+- [ ] Enhanced Chat
+  - Query across both uploaded documents and scraped web content
+  - Source attribution for web content responses
+  - Filter responses by content type (documents vs web)
+
+**Outcome:**  
+Users can scrape web content and chat about it alongside their uploaded documents.
+
+---
+
 ## 🛠 Tech Stack
 
 | Layer        | Technology                |

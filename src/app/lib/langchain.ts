@@ -42,7 +42,8 @@ class LangChainService {
 
   async chatWithRAG(
     userMessage: string,
-    selectedDocuments?: string[]
+    selectedDocuments?: string[],
+    multiSelectMode?: boolean
   ): Promise<string> {
     try {
       // Check if this is a system-level question about the app
@@ -65,14 +66,18 @@ class LangChainService {
       // 1. Retrieve relevant context from vector database
       let relevantDocs: (string | null)[] = [];
 
-      if (selectedDocuments && selectedDocuments.length > 0) {
+      if (
+        multiSelectMode &&
+        selectedDocuments &&
+        selectedDocuments.length > 0
+      ) {
         // Search within selected documents only
-        relevantDocs = await vectorDB.searchInDocuments(
+        relevantDocs = await vectorDB.searchInContent(
           userMessage,
           selectedDocuments,
           5
         );
-      } else {
+      } else if (!multiSelectMode) {
         // Search across all documents (fallback behavior)
         relevantDocs = await vectorDB.search(userMessage, 5);
       }

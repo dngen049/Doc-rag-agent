@@ -4,14 +4,21 @@ import { useState } from "react";
 import ChatWindow from "./components/ChatWindow";
 import UploadForm from "./components/UploadForm";
 import UploadedFiles from "./components/UploadedFiles";
+import WebScrapeForm from "./components/WebScrapeForm";
 
 export default function Home() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<"upload" | "scrape">("upload");
 
   const handleUploadSuccess = () => {
     // Trigger a refresh of the uploaded files list
+    setRefreshTrigger((prev) => prev + 1);
+  };
+
+  const handleScrapeSuccess = () => {
+    // Trigger a refresh of the uploaded files list to show scraped content
     setRefreshTrigger((prev) => prev + 1);
   };
 
@@ -40,13 +47,47 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Upload and Files */}
+          {/* Left Column - Upload/Scrape and Files */}
           <div className="lg:col-span-1 space-y-6">
-            <UploadForm onUploadSuccess={handleUploadSuccess} />
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-lg shadow-lg border">
+              <div className="flex border-b">
+                <button
+                  onClick={() => setActiveTab("upload")}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === "upload"
+                      ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  📄 Upload Documents
+                </button>
+                <button
+                  onClick={() => setActiveTab("scrape")}
+                  className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === "scrape"
+                      ? "text-blue-600 border-b-2 border-blue-600 bg-blue-50"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  🌐 Scrape Web Content
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6">
+                {activeTab === "upload" ? (
+                  <UploadForm onUploadSuccess={handleUploadSuccess} />
+                ) : (
+                  <WebScrapeForm onScrapeSuccess={handleScrapeSuccess} />
+                )}
+              </div>
+            </div>
+
             <div className="bg-white rounded-lg shadow-lg border p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">
-                  Document Selection
+                  Content Selection
                 </h3>
                 <button
                   onClick={toggleMultiSelectMode}
@@ -70,7 +111,10 @@ export default function Home() {
 
           {/* Right Column - Chat */}
           <div className="lg:col-span-2">
-            <ChatWindow selectedDocuments={selectedDocuments} />
+            <ChatWindow
+              selectedDocuments={selectedDocuments}
+              multiSelectMode={multiSelectMode}
+            />
           </div>
         </div>
 
