@@ -43,6 +43,14 @@ export default function Home() {
           <p className="text-gray-600">
             Upload your documents and ask questions about their content
           </p>
+          <div className="mt-4">
+            <a
+              href="/db-query"
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              🗄️ Database Query
+            </a>
+          </div>
         </div>
 
         {/* Main Content */}

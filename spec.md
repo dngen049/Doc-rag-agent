@@ -54,17 +54,17 @@ Allow users to create and manage reusable prompt templates.
 
 **Features:**
 
-- [x] Templates API
+- [] Templates API
   - GET `/api/templates` – List templates
   - POST `/api/templates` – Create new template
   - Templates include:
     - Template name
     - System prompt
     - Config (e.g., chunk size, model)
-- [x] Frontend UI
+- [] Frontend UI
   - Template management page
   - Select a template before starting a chat
-- [x] Templates stored in memory (or JSON file for now)
+- [] Templates stored in memory (or JSON file for now)
 
 **Outcome:**  
 User can select from saved templates to guide the assistant’s behavior.
@@ -94,11 +94,11 @@ Polish UI/UX and prepare for scaling.
 
 **Features:**
 
-- [x] Stream chat responses (token-by-token)
-- [x] Support large files (>100MB) with background processing
-- [x] Dockerize app for deployment
-- [x] Replace ChromaDB with Pinecone (optional)
-- [x] Move file storage to AWS S3 (optional)
+- [] Stream chat responses (token-by-token)
+- [] Support large files (>100MB) with background processing
+- [] Dockerize app for deployment
+- [] Replace ChromaDB with Pinecone (optional)
+- [] Move file storage to AWS S3 (optional)
 
 **Outcome:**  
 Production-ready app with improved UX and scalability.
@@ -112,29 +112,76 @@ Enable users to scrape and analyze web content directly within the app.
 
 **Features:**
 
-- [ ] Web Scraping API
+- [x] Web Scraping API
   - POST `/api/scrape` – Scrape content from URLs
   - Accept single URL or list of URLs
   - Extract text content, metadata, and links
   - Handle different content types (articles, blogs, documentation)
   - Rate limiting and respectful crawling
-- [ ] Web Content Processing
+- [x] Web Content Processing
   - Clean and structure scraped content
   - Split into chunks for vector storage
   - Generate embeddings for web content
   - Store in same ChromaDB with document type tagging
-- [ ] Frontend UI
+- [x] Frontend UI
   - URL input form for web scraping
   - Progress indicators for scraping operations
   - Display scraped content preview
   - Option to combine web content with uploaded documents
-- [ ] Enhanced Chat
+- [x] Enhanced Chat
   - Query across both uploaded documents and scraped web content
   - Source attribution for web content responses
   - Filter responses by content type (documents vs web)
 
 **Outcome:**  
 Users can scrape web content and chat about it alongside their uploaded documents.
+
+---
+
+### 🗄️ **Iteration 6 – Database Query**
+
+**Goal:**  
+Enable users to query databases directly and use LLM to answer questions about the data.
+
+**Features:**
+
+- [] Database Connection API
+  - POST `/api/db/connect` – Establish database connection
+  - Support for MySQL database
+  - Connection pooling and security
+  - Connection status monitoring
+- [] Database Query API
+  - POST `/api/db/query` – Execute natural language queries
+  - Convert natural language to SQL using LLM
+  - Execute SQL queries safely with parameterization
+  - Return structured results with metadata
+- [] Database Schema Analysis
+  - GET `/api/db/schema` – Retrieve database schema
+  - Table and column information
+  - Foreign key relationships
+  - Data types and constraints
+- [] Frontend UI
+  - Separate database query page (`/db-query`)
+  - Database connection form
+  - Table selection interface (multi-select)
+  - Natural language query input
+  - Results display with data visualization
+  - Query history and saved queries
+  - Schema browser/explorer
+- [] Enhanced LLM Integration
+  - Use selected table schemas as context for query generation
+  - Limit query scope to selected tables only
+  - Explain query results in natural language
+  - Suggest follow-up questions based on data
+  - Generate insights and patterns from query results
+- [] Security & Safety
+  - Query validation and sanitization
+  - Read-only mode option
+  - Query execution limits
+  - Connection timeout handling
+
+**Outcome:**  
+Users can connect to databases, ask questions in natural language, and get AI-powered insights from their data.
 
 ---
 
