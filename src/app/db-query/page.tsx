@@ -5,8 +5,10 @@ import {
   DatabaseConnectionForm,
   DatabaseConnectionStatus,
   TableSchema,
+  QueryResponse,
 } from "@/app/types/database";
 import TableSelection from "@/app/components/TableSelection";
+import NaturalLanguageQuery from "@/app/components/NaturalLanguageQuery";
 import {
   generateSchemaContext,
   generateSchemaSummary,
@@ -34,6 +36,12 @@ export default function DatabaseQueryPage() {
   const [schema, setSchema] = useState<TableSchema[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [schemaContext, setSchemaContext] = useState<string>("");
+
+  // Phase 3: Query state
+  const [lastQueryResponse, setLastQueryResponse] =
+    useState<QueryResponse | null>(null);
+  const [isSchemaContextCollapsed, setIsSchemaContextCollapsed] =
+    useState<boolean>(false);
 
   // Check connection status on component mount
   useEffect(() => {
@@ -131,6 +139,15 @@ export default function DatabaseQueryPage() {
 
   const handleTablesSelected = (tables: string[]) => {
     setSelectedTables(tables);
+  };
+
+  const handleSchemaLoading = (schema: TableSchema[]) => {
+    console.log("Schema loaded:", schema);
+    setSchema(schema);
+  };
+
+  const handleQueryComplete = (response: QueryResponse) => {
+    setLastQueryResponse(response);
   };
 
   return (
@@ -319,43 +336,85 @@ export default function DatabaseQueryPage() {
                 🗂️ Schema Discovery & Table Selection
               </h2>
 
-              <TableSelection onTablesSelected={handleTablesSelected} />
+              <TableSelection
+                onTablesSelected={handleTablesSelected}
+                onSchemaLoading={handleSchemaLoading}
+              />
 
               {/* Schema Context Preview */}
               {schemaContext && (
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                    Generated Schema Context
-                  </h3>
-                  <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto">
-                      {schemaContext}
-                    </pre>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Generated Schema Context
+                    </h3>
+                    <button
+                      onClick={() =>
+                        setIsSchemaContextCollapsed(!isSchemaContextCollapsed)
+                      }
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      title={isSchemaContextCollapsed ? "Expand" : "Collapse"}
+                    >
+                      {isSchemaContextCollapsed ? "▼" : "▲"}
+                    </button>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">
-                    This context will be provided to the AI for generating
-                    accurate SQL queries.
-                  </p>
+
+                  {!isSchemaContextCollapsed ? (
+                    <>
+                      <div className="bg-gray-50 border border-gray-200 rounded-md p-4">
+                        <pre className="text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto">
+                          {schemaContext}
+                        </pre>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        This context will be provided to the AI for generating
+                        accurate SQL queries.
+                      </p>
+                    </>
+                  ) : (
+                    <div className="text-sm text-gray-600">
+                      <p>Schema context is available for AI query generation</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {selectedTables.length} tables selected • Click to
+                        expand
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           )}
 
+          {connectionStatus.connected &&
+            selectedTables.length > 0 &&
+            schema.length > 0 && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  🤖 Natural Language to SQL Conversion
+                </h2>
+
+                <NaturalLanguageQuery
+                  selectedTables={selectedTables}
+                  schema={schema}
+                  onQueryComplete={handleQueryComplete}
+                />
+              </div>
+            )}
+
           {/* Next Steps */}
-          {connectionStatus.connected && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">
-                ✅ Phase 2 Complete!
+          {connectionStatus.connected && selectedTables.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-green-900 mb-2">
+                ✅ Phase 3 Complete!
               </h3>
-              <p className="text-blue-700 mb-3">
-                Schema discovery and table selection are now active. In the next
-                phase, you&apos;ll be able to:
+              <p className="text-green-700 mb-3">
+                Natural language to SQL conversion is now active! You can:
               </p>
-              <ul className="text-blue-700 space-y-1">
-                <li>• Query your data using natural language</li>
-                <li>• View and visualize results</li>
-                <li>• Get AI-powered insights</li>
-                <li>• Manage query history</li>
+              <ul className="text-green-700 space-y-1">
+                <li>• Ask questions in plain English</li>
+                <li>• Get AI-generated SQL queries</li>
+                <li>• View query explanations</li>
+                <li>• Execute queries safely</li>
               </ul>
             </div>
           )}

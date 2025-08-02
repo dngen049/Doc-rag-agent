@@ -5,10 +5,12 @@ import { TableSchema } from "@/app/types/database";
 
 interface TableSelectionProps {
   onTablesSelected: (selectedTables: string[]) => void;
+  onSchemaLoading: (schema: TableSchema[]) => void;
 }
 
 export default function TableSelection({
   onTablesSelected,
+  onSchemaLoading,
 }: TableSelectionProps) {
   const [schema, setSchema] = useState<TableSchema[]>([]);
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
@@ -35,6 +37,7 @@ export default function TableSelection({
 
       if (response.ok) {
         setSchema(data.schema);
+        onSchemaLoading(data.schema);
       } else {
         setError(data.error || "Failed to fetch schema");
       }

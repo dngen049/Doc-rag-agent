@@ -64,3 +64,25 @@ export interface SchemaResponse {
   error?: string;
   details?: string;
 }
+
+// Query Generation Types
+export interface QueryRequest {
+  query: string;
+  selectedTables: string[];
+  schema: TableSchema[];
+  readOnly?: boolean;
+  maxRows?: number;
+}
+
+export interface QueryResponse {
+  success: boolean;
+  query: string;
+  sql: string;
+  explanation: string;
+  results?: unknown;
+  executionTime?: number;
+  readOnly: boolean;
+  selectedTables: string[];
+  error?: string;
+  details?: string;
+}
