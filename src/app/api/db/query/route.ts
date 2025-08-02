@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DatabaseManager } from "@/app/lib/database";
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOllama } from "@langchain/ollama";
 import { generateSchemaContext } from "@/app/utils/schemaContext";
 
 export async function POST(request: NextRequest) {
@@ -34,24 +34,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate OpenAI API key
-    if (!process.env.OPENAI_API_KEY) {
-      return NextResponse.json(
-        {
-          error: "OpenAI API key not configured",
-        },
-        { status: 500 }
-      );
+    // Validate Ollama is available
+    if (!process.env.OLLAMA_BASE_URL && !process.env.OLLAMA_HOST) {
+      // Default to localhost if no Ollama URL is configured
+      console.log("Using default Ollama URL: http://localhost:11434");
     }
 
     // Generate schema context for the selected tables
     const schemaContext = generateSchemaContext(schema, selectedTables);
 
     // Create LLM instance
-    const llm = new ChatOpenAI({
-      modelName: "gpt-4",
+    const llm = new ChatOllama({
+      model: "llama3.2",
       temperature: 0.1, // Low temperature for more consistent SQL generation
-      maxTokens: 2000,
+      baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
     });
 
     // Create the prompt for SQL generation

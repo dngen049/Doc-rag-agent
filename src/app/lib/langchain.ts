@@ -1,14 +1,14 @@
-import { ChatOpenAI } from "@langchain/openai";
+import { ChatOllama } from "@langchain/ollama";
 import { ConversationChain } from "langchain/chains";
 import { BufferMemory } from "langchain/memory";
 import { vectorDB } from "./vectordb";
 import { SYSTEM_MESSAGE } from "./systemMessage";
 
-// Initialize OpenAI model
-const model = new ChatOpenAI({
-  modelName: "gpt-4",
+// Initialize Ollama model
+const model = new ChatOllama({
+  model: "llama3.2",
   temperature: 0.7,
-  openAIApiKey: process.env.OPENAI_API_KEY,
+  baseUrl: process.env.OLLAMA_BASE_URL || "http://localhost:11434",
 });
 
 // Conversation memory
