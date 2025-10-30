@@ -18,3 +18,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           pull_number: ${{ github.event.pull_request.number }}
           repo_name: ${{ github.repository }}
+          custom_guidelines: |
+            - Always mention if database migrations are included
+            - Highlight any breaking API changes
+            - Reference the Jira ticket number if applicable
+            - Include performance impact for large changes
