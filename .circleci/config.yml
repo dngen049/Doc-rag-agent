@@ -1,0 +1,42 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5.2.0
+
+jobs:
+  lint:
+    executor:
+      name: node/default
+      tag: '20'
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Run ESLint
+          command: yarn lint
+
+  test:
+    executor:
+      name: node/default
+      tag: '20'
+    steps:
+      - checkout
+      - node/install-packages:
+          pkg-manager: yarn
+      - run:
+          name: Run tests
+          command: yarn test --coverage
+      - store_artifacts:
+          path: coverage
+          destination: coverage-report
+
+workflows:
+  version: 2
+  lint_and_test:
+    jobs:
+      - lint
+      - test:
+          requires:
+            - lint
+
