@@ -1,46 +1,48 @@
-# Custom Guidelines PR Review
-# Demonstrates how to use custom guidelines for project-specific review criteria
-
-name: Custom Guidelines PR Review
+name: Augment Agent - Code Review
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened]
 
 jobs:
-  review:
+  code-review:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
     steps:
-      - name: Generate PR Review with Custom Guidelines
-        uses: augmentcode/review-pr@v0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create instruction file
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          cat > /tmp/review-instruction.txt << EOF
+          Perform a comprehensive code review of the following pull request:
+
+          **Pull Request Information:**
+          - PR Number: ${PR_NUMBER}
+          - Repository: ${REPOSITORY}
+          - Base Branch: ${BASE_BRANCH}
+          - Head Branch: ${HEAD_BRANCH}
+
+          **Review Focus:**
+          Analyze the modified files and provide detailed feedback on:
+          - Code quality and adherence to best practices
+          - Potential bugs, errors, or security vulnerabilities
+          - Performance implications of the changes
+          - Suggestions for improvement or optimization
+          - Any missing error handling or edge cases
+          - Code maintainability and readability
+
+          Please provide specific, actionable feedback with file and line references where applicable.
+          Focus on the actual code changes and their impact on the codebase.
+
+          Please post your review as a review comment on the PR. Do not approve or request changes.
+          EOF
+      - name: Code Review
+        uses: augmentcode/augment-agent@v0
         with:
           augment_session_auth: ${{ secrets.AUGMENT_SESSION_AUTH }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          pull_number: ${{ github.event.pull_request.number }}
-          repo_name: ${{ github.repository }}
-          custom_guidelines: |
-            ### Project-Specific Requirements:
-            - **TypeScript**: Avoid using `any` type, prefer proper type definitions
-            - **Testing**: All new functions must have corresponding unit tests
-            - **Documentation**: Public APIs require JSDoc comments with examples
-            - **Performance**: Flag any synchronous operations that could block the main thread
-
-            ### Code Quality Standards:
-            - Use functional programming patterns where appropriate
-            - Prefer composition over inheritance
-            - Follow the established naming conventions in the codebase
-            - Ensure proper error handling for all async operations
-
-            ### Security Guidelines:
-            - Validate all user inputs at API boundaries
-            - Check for potential XSS vulnerabilities in UI components
-            - Ensure sensitive data is not exposed in logs or error messages
-            - Review authentication and authorization logic carefully
-
-            ### Architecture Considerations:
-            - New components should follow the established design patterns
-            - Database changes must be backwards compatible
-            - API changes should maintain backwards compatibility when possible
-            - Consider the impact on existing integrations
+          instruction_file: /tmp/review-instruction.txt
