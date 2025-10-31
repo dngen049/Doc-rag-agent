@@ -7,7 +7,7 @@ jobs:
   lint:
     executor:
       name: node/default
-      tag: "20"
+      tag: "20.18.0"
     steps:
       - checkout
       - node/install-packages:
@@ -19,7 +19,7 @@ jobs:
   test:
     executor:
       name: node/default
-      tag: "20"
+      tag: "20.18.0"
     steps:
       - checkout
       - node/install-packages:
@@ -30,6 +30,8 @@ jobs:
       - store_artifacts:
           path: coverage
           destination: coverage-report
+      - store_test_results:
+          path: coverage
 
 workflows:
   version: 2
