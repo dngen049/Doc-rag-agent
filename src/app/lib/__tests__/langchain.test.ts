@@ -5,7 +5,6 @@ jest.mock('langchain/memory')
 jest.mock('../vectordb')
 
 import { langChainService } from '../langchain'
-import { vectorDB } from '../vectordb'
 
 describe('LangChainService', () => {
   beforeEach(() => {

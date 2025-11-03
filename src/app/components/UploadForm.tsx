@@ -29,7 +29,7 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
     if (files.length > 0) {
       handleFileUpload(files[0]);
     }
-  }, []);
+  }, [handleFileUpload]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -38,7 +38,7 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
     }
   };
 
-  const handleFileUpload = async (file: File) => {
+  const handleFileUpload = useCallback(async (file: File) => {
     const allowedTypes = ["text/plain", "text/markdown", "text/x-markdown"];
 
     if (!allowedTypes.includes(file.type)) {
@@ -65,7 +65,7 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        await response.json();
         setUploadStatus(
           `Success! Document "${file.name}" uploaded successfully.`
         );
@@ -74,12 +74,12 @@ export default function UploadForm({ onUploadSuccess }: UploadFormProps) {
         const errorData = await response.json();
         setUploadStatus(`Error: ${errorData.message || "Upload failed"}`);
       }
-    } catch (error) {
+    } catch (_error) {
       setUploadStatus("Error: Failed to upload file. Please try again.");
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [onUploadSuccess]);
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-lg shadow-lg border p-6">

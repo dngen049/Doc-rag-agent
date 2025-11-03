@@ -16,13 +16,13 @@ describe("DatabaseManager", () => {
     mockConnection = {
       ping: jest.fn().mockResolvedValue(undefined),
       release: jest.fn(),
-    } as any;
+    } as jest.Mocked<mysql.PoolConnection>;
 
     // Setup mock pool
     mockPool = {
       getConnection: jest.fn().mockResolvedValue(mockConnection),
       end: jest.fn().mockResolvedValue(undefined),
-    } as any;
+    } as jest.Mocked<mysql.Pool>;
 
     // Mock createPool
     (mysql.createPool as jest.Mock).mockReturnValue(mockPool);

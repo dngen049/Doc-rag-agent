@@ -64,7 +64,7 @@ export default function ChatWindow({
       } else {
         throw new Error("Failed to get response");
       }
-    } catch (error) {
+    } catch (_error) {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: "Sorry, there was an error processing your request.",

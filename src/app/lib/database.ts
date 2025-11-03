@@ -77,7 +77,7 @@ export class DatabaseManager {
         success: true,
         message: "Database connection closed successfully",
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         success: false,
         message: "Failed to close database connection",
@@ -103,7 +103,7 @@ export class DatabaseManager {
         connected: true,
         message: "Database connection is active",
       };
-    } catch (error) {
+    } catch (_error) {
       // Clean up dead connection
       if (connectionPool) {
         try {

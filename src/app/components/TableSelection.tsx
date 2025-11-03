@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TableSchema } from "@/app/types/database";
 
 interface TableSelectionProps {
@@ -21,13 +21,13 @@ export default function TableSelection({
 
   useEffect(() => {
     fetchSchema();
-  }, []);
+  }, [fetchSchema]);
 
   useEffect(() => {
     onTablesSelected(selectedTables);
   }, [selectedTables, onTablesSelected]);
 
-  const fetchSchema = async () => {
+  const fetchSchema = useCallback(async () => {
     setLoading(true);
     setError("");
 
@@ -41,12 +41,12 @@ export default function TableSelection({
       } else {
         setError(data.error || "Failed to fetch schema");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("Network error occurred");
     } finally {
       setLoading(false);
     }
-  };
+  }, [onSchemaLoading]);
 
   const handleRefresh = () => {
     fetchSchema();
