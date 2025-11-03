@@ -10,8 +10,8 @@ jest.mock("../../utils/schemaContext", () => ({
 }));
 
 describe("Database Query API Endpoint", () => {
-  let mockConnection: any;
-  let mockLLM: any;
+  let mockConnection: jest.Mocked<Record<string, jest.Mock>>;
+  let mockLLM: jest.Mocked<Record<string, jest.Mock>>;
 
   beforeEach(() => {
     jest.clearAllMocks();

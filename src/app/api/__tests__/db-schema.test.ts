@@ -4,13 +4,13 @@ import { DatabaseManager } from "../../lib/database";
 jest.mock("../../lib/database");
 
 describe("Database Schema API Endpoint", () => {
-  let mockConnection: any;
+  let mockConnection: jest.Mocked<Record<string, jest.Mock>>;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockConnection = {
       execute: jest.fn(),
-    };
+    } as jest.Mocked<Record<string, jest.Mock>>;
   });
 
   describe("GET /api/db/schema", () => {
@@ -34,7 +34,7 @@ describe("Database Schema API Endpoint", () => {
           extra: "auto_increment",
         },
       ];
-      const mockForeignKeys: any[] = [];
+      const mockForeignKeys: Record<string, unknown>[] = [];
       const mockPrimaryKeys = [{ columnName: "id" }];
 
       mockConnection.execute
