@@ -1,4 +1,3 @@
-import { readFile } from "fs/promises";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 
 // Text splitter for chunking documents

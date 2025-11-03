@@ -28,7 +28,7 @@ class VectorDB {
       this.collection = await this.client.getCollection({
         name: this.collectionName,
       });
-    } catch (error) {
+    } catch (_error) {
       // Create new collection if it doesn't exist
       this.collection = await this.client.createCollection({
         name: this.collectionName,
@@ -139,7 +139,7 @@ class VectorDB {
       );
       const urls = contentNames.filter((name) => name.startsWith("http"));
 
-      let whereClause: any = undefined;
+      let whereClause: Record<string, unknown> | undefined = undefined;
 
       if (documentNames.length > 0 && urls.length > 0) {
         // Search in both documents and web content
@@ -157,7 +157,7 @@ class VectorDB {
       const results = await this.collection!.query({
         queryEmbeddings: [queryEmbedding],
         nResults: k,
-        where: whereClause as any,
+        where: whereClause,
       });
 
       return results.documents?.[0] || [];

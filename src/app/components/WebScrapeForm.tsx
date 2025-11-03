@@ -81,7 +81,7 @@ export default function WebScrapeForm({ onScrapeSuccess }: WebScrapeFormProps) {
         const errorData = await response.json();
         setScrapeStatus(`Error: ${errorData.error || "Scraping failed"}`);
       }
-    } catch (error) {
+    } catch (_error) {
       setScrapeStatus("Error: Failed to scrape URLs. Please try again.");
     } finally {
       setIsScraping(false);

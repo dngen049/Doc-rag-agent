@@ -63,7 +63,7 @@ export default function NaturalLanguageQuery({
       } else {
         setError(data.error || "Failed to generate SQL query");
       }
-    } catch (error) {
+    } catch (_error) {
       setError("Network error occurred");
     } finally {
       setIsGenerating(false);

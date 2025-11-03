@@ -11,7 +11,6 @@ import TableSelection from "@/app/components/TableSelection";
 import NaturalLanguageQuery from "@/app/components/NaturalLanguageQuery";
 import {
   generateSchemaContext,
-  generateSchemaSummary,
 } from "@/app/utils/schemaContext";
 
 export default function DatabaseQueryPage() {
@@ -38,7 +37,7 @@ export default function DatabaseQueryPage() {
   const [schemaContext, setSchemaContext] = useState<string>("");
 
   // Phase 3: Query state
-  const [lastQueryResponse, setLastQueryResponse] =
+  const [, setLastQueryResponse] =
     useState<QueryResponse | null>(null);
   const [isSchemaContextCollapsed, setIsSchemaContextCollapsed] =
     useState<boolean>(false);
@@ -105,7 +104,7 @@ export default function DatabaseQueryPage() {
           message: "Connection failed",
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setError("Network error occurred");
       setConnectionStatus({
         connected: false,
