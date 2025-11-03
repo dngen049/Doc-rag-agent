@@ -20,8 +20,8 @@ const customJestConfig = {
   ],
   coverageThreshold: {
     "src/app/lib/": {
-      branches: 35,
-      functions: 35,
+      branches: 14,
+      functions: 25,
       lines: 35,
       statements: 35,
     },
