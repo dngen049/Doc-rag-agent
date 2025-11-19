@@ -1,0 +1,117 @@
+name: Jira Codex Implementation
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_key:
+        description: "Jira issue key"
+        required: true
+        type: string
+      issue_summary:
+        description: "Jira issue summary"
+        required: true
+        type: string
+      issue_description:
+        description: "Jira issue description"
+        required: true
+        type: string
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract issue data
+        id: issue
+        run: |
+          ISSUE_KEY=$(echo '${{ github.event.inputs.issue_key }}' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
+          echo "issue_key=${{ github.event.inputs.issue_key }}" >> $GITHUB_OUTPUT
+          echo "issue_summary=${{ github.event.inputs.issue_summary }}" >> $GITHUB_OUTPUT
+          echo "issue_description=${{ github.event.inputs.issue_description }}" >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get latest code and create branch
+        run: |
+          # Try to checkout main, fallback to master
+          git checkout main || git checkout master
+          git pull origin main || git pull origin master || true
+          # Create new branch from latest main/master
+          git checkout -b ${{ steps.issue.outputs.branch_name }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.18.1"
+          cache: "yarn"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install codex
+        run: |
+          npm i -g @openai/codex
+
+      - name: Run codex implementation
+        env:
+          ISSUE_KEY: ${{ steps.issue.outputs.issue_key }}
+          ISSUE_SUMMARY: ${{ steps.issue.outputs.issue_summary }}
+          ISSUE_DESCRIPTION: ${{ steps.issue.outputs.issue_description }}
+        run: |
+          # Create a comprehensive prompt for codex
+          PROMPT="Issue: $ISSUE_KEY - $ISSUE_SUMMARY
+
+          $ISSUE_DESCRIPTION"
+
+          # Run codex with --full-auto flag
+          codex --full-auto "$PROMPT"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add .
+          git commit -m "Implement: ${{ steps.issue.outputs.issue_key }} - ${{ steps.issue.outputs.issue_summary }}"
+
+      - name: Push branch
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git push origin ${{ steps.issue.outputs.branch_name }}
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.issue.outputs.branch_name }}
+          title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
+          body: |
+            ## Issue Information
+            - **Issue Key:** ${{ steps.issue.outputs.issue_key }}
+            - **Summary:** ${{ steps.issue.outputs.issue_summary }}
+
+            ## Description
+            ${{ steps.issue.outputs.issue_description }}
+
+            ---
+            *This PR was automatically created by the Jira Codex workflow*
