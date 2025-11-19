@@ -19,103 +19,56 @@ on:
 jobs:
   implement:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
-      - name: Checkout code
+      - name: Checkout repository (gives Codex repo context)
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract issue data
-        id: issue
-        run: |
-          ISSUE_KEY=$(echo '${{ github.event.inputs.issue_key }}' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
-          echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
-          echo "issue_key=${{ github.event.inputs.issue_key }}" >> $GITHUB_OUTPUT
-          echo "issue_summary=${{ github.event.inputs.issue_summary }}" >> $GITHUB_OUTPUT
-          {
-            echo 'issue_description<<DESC_DELIMITER'
-            printf '%s\n' '${{ github.event.inputs.issue_description }}'
-            echo 'DESC_DELIMITER'
-          } >> $GITHUB_OUTPUT
-
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create branch
-        run: |
-          # Create new branch from current checkout (already on main/master from checkout action)
-          git checkout -b ${{ steps.issue.outputs.branch_name }}
+          fetch-depth: 1
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.18.1"
-          cache: "yarn"
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
+          node-version: 20
 
       - name: Install codex
         run: |
           npm i -g @openai/codex
 
-      - name: Run codex implementation
+      - name: Login to codex
         env:
-          ISSUE_KEY: ${{ steps.issue.outputs.issue_key }}
-          ISSUE_SUMMARY: ${{ steps.issue.outputs.issue_summary }}
-          ISSUE_DESCRIPTION: ${{ steps.issue.outputs.issue_description }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          # Login to codex using API key from stdin
+          echo "$OPENAI_API_KEY" | codex login --with-api-key
+
+      - name: Run codex implementation
+        id: codex
+        env:
+          ISSUE_KEY: ${{ github.event.inputs.issue_key }}
+          ISSUE_SUMMARY: ${{ github.event.inputs.issue_summary }}
+          ISSUE_DESCRIPTION: ${{ github.event.inputs.issue_description }}
           CI: true
         run: |
-          # Create a comprehensive prompt for codex
-          PROMPT="Issue: $ISSUE_KEY - $ISSUE_SUMMARY
+          # Create a comprehensive prompt for codex (kept in a file to preserve formatting)
+          cat <<'EOF' > /tmp/codex-prompt.txt
+          Issue: $ISSUE_KEY - $ISSUE_SUMMARY
 
-          $ISSUE_DESCRIPTION"
+          $ISSUE_DESCRIPTION
+          EOF
 
-          # Run codex with --full-auto flag
-          # codex requires a TTY for interactive output, so we use 'script' to create a pseudo-terminal
-          # -q: quiet (no start/stop messages), -e: return exit code, -c: command, /dev/null: discard log
-          script -q -e -c "codex --full-auto \"$PROMPT\"" /dev/null
+          # Run codex cloud exec with environment ID. Because the repo is checked out,
+          # codex cloud has the repository context available for the run.
+          # Capture the output which includes the task link
+          OUTPUT=$(codex cloud exec --env "Doc-rag-agent" "$(cat /tmp/codex-prompt.txt)" 2>&1)
 
-      - name: Check for changes
-        id: changes
-        run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+          # Extract the task link from the output (looks like https://chatgpt.com/codex/tasks/task_...)
+          TASK_LINK=$(echo "$OUTPUT" | grep -o 'https://chatgpt.com/codex/tasks/[^[:space:]]*' | head -1)
+
+          # Display the output
+          echo "$OUTPUT"
+
+          # Save the task link as an output
+          if [ -n "$TASK_LINK" ]; then
+            echo "task_link=$TASK_LINK" >> $GITHUB_OUTPUT
+            echo "::notice::Codex task link: $TASK_LINK"
           fi
-
-      - name: Commit changes
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git add .
-          git commit -m "Implement: ${{ steps.issue.outputs.issue_key }} - ${{ steps.issue.outputs.issue_summary }}"
-
-      - name: Push branch
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git push origin ${{ steps.issue.outputs.branch_name }}
-
-      - name: Create Pull Request
-        if: steps.changes.outputs.has_changes == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ steps.issue.outputs.branch_name }}
-          title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
-          body: |
-            ## Issue Information
-            - **Issue Key:** ${{ steps.issue.outputs.issue_key }}
-            - **Summary:** ${{ steps.issue.outputs.issue_summary }}
-
-            ## Description
-            ${{ steps.issue.outputs.issue_description }}
-
-            ---
-            *This PR was automatically created by the Jira Codex workflow*

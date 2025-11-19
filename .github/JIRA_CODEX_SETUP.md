@@ -90,6 +90,23 @@ If you're using a GitHub organization or want more granular control, use a **Fin
 - ✅ **Use fine-grained tokens** if you want to limit access to specific repositories
 - ✅ **Revoke the token immediately** if it's compromised or no longer needed
 
+### Configuring GitHub Secrets
+
+The workflow requires an OpenAI API key to authenticate with codex. You need to add this as a GitHub secret:
+
+1. **Go to your repository on GitHub**
+
+   - Navigate to **Settings** → **Secrets and variables** → **Actions**
+
+2. **Add the OpenAI API Key**
+
+   - Click **New repository secret**
+   - **Name**: `OPENAI_API_KEY`
+   - **Value**: Your OpenAI API key (starts with `sk-...`)
+   - Click **Add secret**
+
+   > **Note**: The workflow uses `OPENAI_API_KEY` to authenticate with codex using `codex login --with-api-key`. The Codex environment ID is hardcoded as `Doc-rag-agent` in the workflow.
+
 ## Jira Webhook Configuration
 
 ### Option 1: Using Jira Automation (Recommended)
@@ -179,10 +196,9 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
 2. Add the "codex" label to the issue
 3. Check the GitHub Actions tab to see if the workflow runs
 4. The workflow will:
-   - Create a branch named `codex-{issue-key}` (e.g., `codex-proj-123`)
-   - Install codex and run `codexg`
-   - Commit changes and push the branch
-   - Create a pull request automatically
+   - Install codex and authenticate
+   - Run `codex cloud exec` with the issue description in the cloud environment
+   - The codex agent will work directly in the cloud environment (no local checkout or commits)
 
 ## Troubleshooting
 
@@ -198,16 +214,24 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
   - Verify the workflow filename matches in the URL (`jira-codex.yml`)
   - Check that the `ref` in the request body matches your default branch (usually `main` or `master`)
   - Ensure all required inputs are provided
-- **Authentication errors**: Verify your GitHub PAT has the correct permissions (`repo` and `workflow`)
-- **Branch creation fails**: Ensure the issue key doesn't contain invalid characters (they'll be sanitized)
-- **Codexg not found**: The workflow installs codex using `npm i -g @openai/codex`. If codex installation fails, verify the package name and npm access.
+- **Authentication errors**:
+  - Verify your GitHub PAT has the correct permissions (`repo` and `workflow`)
+  - Ensure `OPENAI_API_KEY` secret is configured in GitHub repository settings
+  - Verify the API key is valid and has not expired
+- **Codex login fails**:
+  - Check that the `OPENAI_API_KEY` secret is set correctly
+  - Verify the API key format (should start with `sk-`)
+  - Ensure the API key has the necessary permissions for codex
+- **Codex cloud exec fails**:
+  - Verify that the environment ID `Doc-rag-agent` is valid and accessible
+  - Check that you have permissions to use the cloud environment
+- **Codex not found**: The workflow installs codex using `npm i -g @openai/codex`. If codex installation fails, verify the package name and npm access.
 
 ## Workflow Behavior
 
-- The workflow creates branches with the pattern: `codex-{issue-key}`
-- If no changes are made by codexg, no commit or PR will be created
-- The PR title format: `[{ISSUE_KEY}] {ISSUE_SUMMARY}`
-- The PR includes the issue description in the body
+- The workflow runs `codex cloud exec` in a cloud environment
+- Codex works directly in the cloud environment - no local checkout, commits, or pull requests are created
+- The issue description is passed as the prompt to codex
 
 ## Testing with curl
 
