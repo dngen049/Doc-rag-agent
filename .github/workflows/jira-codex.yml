@@ -49,26 +49,9 @@ jobs:
           ISSUE_DESCRIPTION: ${{ github.event.inputs.issue_description }}
           CI: true
         run: |
-          # Create a comprehensive prompt for codex (kept in a file to preserve formatting)
-          cat <<'EOF' > /tmp/codex-prompt.txt
-          Issue: $ISSUE_KEY - $ISSUE_SUMMARY
-
-          $ISSUE_DESCRIPTION
-          EOF
+          # Build the prompt inline to keep formatting without writing a file
+          PROMPT=$(printf "Issue: %s - %s\n\n%s\n" "$ISSUE_KEY" "$ISSUE_SUMMARY" "$ISSUE_DESCRIPTION")
 
           # Run codex cloud exec with environment ID. Because the repo is checked out,
           # codex cloud has the repository context available for the run.
-          # Capture the output which includes the task link
-          OUTPUT=$(codex cloud exec --env "Doc-rag-agent" "$(cat /tmp/codex-prompt.txt)" 2>&1)
-
-          # Extract the task link from the output (looks like https://chatgpt.com/codex/tasks/task_...)
-          TASK_LINK=$(echo "$OUTPUT" | grep -o 'https://chatgpt.com/codex/tasks/[^[:space:]]*' | head -1)
-
-          # Display the output
-          echo "$OUTPUT"
-
-          # Save the task link as an output
-          if [ -n "$TASK_LINK" ]; then
-            echo "task_link=$TASK_LINK" >> $GITHUB_OUTPUT
-            echo "::notice::Codex task link: $TASK_LINK"
-          fi
+          codex cloud exec --env Doc-rag-agent "$PROMPT"
