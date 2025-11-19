@@ -36,19 +36,20 @@ jobs:
           echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
           echo "issue_key=${{ github.event.inputs.issue_key }}" >> $GITHUB_OUTPUT
           echo "issue_summary=${{ github.event.inputs.issue_summary }}" >> $GITHUB_OUTPUT
-          echo "issue_description=${{ github.event.inputs.issue_description }}" >> $GITHUB_OUTPUT
+          {
+            echo 'issue_description<<DESC_DELIMITER'
+            printf '%s\n' '${{ github.event.inputs.issue_description }}'
+            echo 'DESC_DELIMITER'
+          } >> $GITHUB_OUTPUT
 
       - name: Configure Git
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Get latest code and create branch
+      - name: Create branch
         run: |
-          # Try to checkout main, fallback to master
-          git checkout main || git checkout master
-          git pull origin main || git pull origin master || true
-          # Create new branch from latest main/master
+          # Create new branch from current checkout (already on main/master from checkout action)
           git checkout -b ${{ steps.issue.outputs.branch_name }}
 
       - name: Setup Node.js

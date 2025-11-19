@@ -99,6 +99,7 @@ If you're using a GitHub organization or want more granular control, use a **Fin
 3. Set the trigger: **Issue updated** → When **Label** is added → Select **codex**
 4. Add an action: **Send web request**
 5. Configure the web request:
+
    - **URL**: `https://api.github.com/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches`
      - Replace `{owner}` with your GitHub username/organization
      - Replace `{repo}` with your repository name
@@ -110,17 +111,41 @@ If you're using a GitHub organization or want more granular control, use a **Fin
      - Password: Your GitHub Personal Access Token (PAT)
    - **Headers**:
      - `Accept: application/vnd.github.v3+json`
+     - `Content-Type: application/json` ⚠️ **IMPORTANT**: This header is required for GitHub to parse the JSON body correctly
    - **Body** (JSON):
+
+     **Important**: The JSON must be on a single line with no trailing commas. Copy this exact JSON:
+
      ```json
      {
        "ref": "main",
        "inputs": {
          "issue_key": "{{issue.key}}",
          "issue_summary": "{{issue.summary}}",
-         "issue_description": "{{issue.description}}"
+         "issue_description": "{{issue.description.replace(\"\\n\",\"\").replace(\"\\\"\",\"'\")}}"
        }
      }
      ```
+
+     Or formatted for readability (but paste as single line in Jira):
+
+     ```json
+     {
+       "ref": "main",
+       "inputs": {
+         "issue_key": "{{issue.key}}",
+         "issue_summary": "{{issue.summary}}",
+         "issue_description": "{{issue.description.replace(\"\\n\",\"\").replace(\"\\\"\",\"'\")}}"
+       }
+     }
+     ```
+
+     > **Important**:
+     >
+     > - The `Content-Type: application/json` header is required
+     > - **No trailing commas** - JSON doesn't allow trailing commas in objects
+     > - The entire JSON must be on a single line when pasting into Jira (or ensure no line breaks within string values)
+     > - The `issue_description` uses `.replace()` to handle special characters (newlines and quotes) that could break JSON parsing
 
 ### Option 2: Using Jira Webhooks
 
@@ -161,6 +186,13 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
 
 ## Troubleshooting
 
+- **"Problems parsing JSON" error (HTTP 400)**:
+  - Add the `Content-Type: application/json` header
+  - Use the `.replace()` functions in `issue_description` to handle special characters (see Body configuration above)
+- **"Not Found" error (HTTP 404)**:
+  - Verify the workflow file exists in the repository and is committed to the default branch
+  - Try using the numeric workflow ID instead of the filename (see "Testing with curl" section)
+  - Check that the repository name and owner are correct
 - **Workflow not triggering**:
   - Verify the workflow filename matches in the URL (`jira-codex.yml`)
   - Check that the `ref` in the request body matches your default branch (usually `main` or `master`)
@@ -175,3 +207,40 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
 - If no changes are made by codexg, no commit or PR will be created
 - The PR title format: `[{ISSUE_KEY}] {ISSUE_SUMMARY}`
 - The PR includes the issue description in the body
+
+## Testing with curl
+
+To test the workflow manually with curl:
+
+1. **First, find your workflow ID** (if using filename doesn't work):
+
+   ```bash
+   curl -H "Authorization: Bearer YOUR_GITHUB_TOKEN" \
+     https://api.github.com/repos/{owner}/{repo}/actions/workflows
+   ```
+
+   Look for `jira-codex.yml` and note the numeric `id` field.
+
+2. **Trigger the workflow** (escape newlines in JSON):
+
+   ```bash
+   curl -L \
+     -X POST \
+     -H "Accept: application/vnd.github+json" \
+     -H "Authorization: Bearer YOUR_GITHUB_TOKEN" \
+     -H "Content-Type: application/json" \
+     -H "X-GitHub-Api-Version: 2022-11-28" \
+     https://api.github.com/repos/{owner}/{repo}/actions/workflows/jira-codex.yml/dispatches \
+     -d '{"ref":"main","inputs":{"issue_key":"KAN-11","issue_summary":"Add tests to utils module","issue_description":"add coverage for schema context generation and summary helpers\n\nverify text extraction utilities for files, buffers, and unsupported types\n\ntest web scraping helpers for static content, multiple URLs, and chunking"}}'
+   ```
+
+   If you get a 404, try using the numeric workflow ID instead:
+
+   ```bash
+   https://api.github.com/repos/{owner}/{repo}/actions/workflows/{numeric_id}/dispatches
+   ```
+
+**Important**:
+
+- Replace newlines in `issue_description` with `\n` (escaped newline) to keep the JSON valid
+- Make sure the workflow file exists in the repository and is committed to the default branch
