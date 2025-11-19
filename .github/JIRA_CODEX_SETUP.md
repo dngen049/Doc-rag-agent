@@ -122,7 +122,7 @@ If you're using a GitHub organization or want more granular control, use a **Fin
        "inputs": {
          "issue_key": "{{issue.key}}",
          "issue_summary": "{{issue.summary}}",
-         "issue_description": "{{issue.description.replace(\"\\n\",\"\").replace(\"\\\"\",\"'\")}}"
+         "issue_description": "{{issue.description}}"
        }
      }
      ```
@@ -135,7 +135,7 @@ If you're using a GitHub organization or want more granular control, use a **Fin
        "inputs": {
          "issue_key": "{{issue.key}}",
          "issue_summary": "{{issue.summary}}",
-         "issue_description": "{{issue.description.replace(\"\\n\",\"\").replace(\"\\\"\",\"'\")}}"
+         "issue_description": "{{issue.description}}"
        }
      }
      ```
@@ -144,8 +144,8 @@ If you're using a GitHub organization or want more granular control, use a **Fin
      >
      > - The `Content-Type: application/json` header is required
      > - **No trailing commas** - JSON doesn't allow trailing commas in objects
-     > - The entire JSON must be on a single line when pasting into Jira (or ensure no line breaks within string values)
-     > - The `issue_description` uses `.replace()` to handle special characters (newlines and quotes) that could break JSON parsing
+     > - The entire JSON must be on a single line when pasting into Jira
+     > - Use `{{issue.description}}` directly - Jira will automatically escape special characters in JSON, and the GitHub workflow handles multiline descriptions properly
 
 ### Option 2: Using Jira Webhooks
 
@@ -188,7 +188,8 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
 
 - **"Problems parsing JSON" error (HTTP 400)**:
   - Add the `Content-Type: application/json` header
-  - Use the `.replace()` functions in `issue_description` to handle special characters (see Body configuration above)
+  - Ensure the JSON is on a single line with no trailing commas
+  - Use `{{issue.description}}` directly - Jira handles JSON escaping automatically
 - **"Not Found" error (HTTP 404)**:
   - Verify the workflow file exists in the repository and is committed to the default branch
   - Try using the numeric workflow ID instead of the filename (see "Testing with curl" section)

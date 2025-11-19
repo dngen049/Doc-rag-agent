@@ -70,6 +70,7 @@ jobs:
           ISSUE_KEY: ${{ steps.issue.outputs.issue_key }}
           ISSUE_SUMMARY: ${{ steps.issue.outputs.issue_summary }}
           ISSUE_DESCRIPTION: ${{ steps.issue.outputs.issue_description }}
+          CI: true
         run: |
           # Create a comprehensive prompt for codex
           PROMPT="Issue: $ISSUE_KEY - $ISSUE_SUMMARY
@@ -77,7 +78,9 @@ jobs:
           $ISSUE_DESCRIPTION"
 
           # Run codex with --full-auto flag
-          codex --full-auto "$PROMPT"
+          # codex requires a TTY for interactive output, so we use 'script' to create a pseudo-terminal
+          # -q: quiet (no start/stop messages), -e: return exit code, -c: command, /dev/null: discard log
+          script -q -e -c "codex --full-auto \"$PROMPT\"" /dev/null
 
       - name: Check for changes
         id: changes
