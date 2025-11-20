@@ -29,13 +29,30 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get default branch
+        id: default-branch
+        run: |
+          # Try to get the default branch, default to "main" if detection fails
+          DEFAULT_BRANCH="main"
+
+          # Try method 1: Get current branch after checkout (should be default branch)
+          CURRENT_BRANCH=$(git branch --show-current 2>/dev/null || git rev-parse --abbrev-ref HEAD 2>/dev/null)
+          if [ -n "$CURRENT_BRANCH" ] && [ "$CURRENT_BRANCH" != "HEAD" ] && [[ ! "$CURRENT_BRANCH" =~ ^codex- ]]; then
+            DEFAULT_BRANCH="$CURRENT_BRANCH"
+          else
+            # Try method 2: Get from remote HEAD
+            REMOTE_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' 2>/dev/null)
+            if [ -n "$REMOTE_BRANCH" ]; then
+              DEFAULT_BRANCH="$REMOTE_BRANCH"
+            fi
+          fi
+
+          echo "base_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+          echo "Using base branch: $DEFAULT_BRANCH"
+
       - name: Extract issue data
         id: issue
         run: |
-          # Get the default branch name (fallback to 'main' if detection fails)
-          DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
-          echo "base_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
-
           # Sanitize issue key and create branch name with codex- prefix
           ISSUE_KEY=$(echo '${{ github.event.inputs.issue_key }}' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
           echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
@@ -107,13 +124,20 @@ jobs:
         run: |
           git push origin ${{ steps.issue.outputs.branch_name }}
 
+      - name: Debug branch info
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          echo "Feature branch: ${{ steps.issue.outputs.branch_name }}"
+          echo "Base branch: ${{ steps.default-branch.outputs.base_branch }}"
+          echo "Current branch: $(git branch --show-current)"
+
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.issue.outputs.branch_name }}
-          base: ${{ steps.issue.outputs.base_branch }}
+          base: ${{ steps.default-branch.outputs.base_branch }}
           title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
           body: |
             ## Issue Information
