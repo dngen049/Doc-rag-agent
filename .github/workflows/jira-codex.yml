@@ -69,10 +69,6 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Create branch
-        run: |
-          git checkout -b ${{ steps.issue.outputs.branch_name }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -119,24 +115,6 @@ jobs:
           git add .
           git commit -m "Implement: ${{ steps.issue.outputs.issue_key }} - ${{ steps.issue.outputs.issue_summary }}"
 
-      - name: Push branch
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          git push origin ${{ steps.issue.outputs.branch_name }}
-
-      - name: Prepare for PR creation
-        if: steps.changes.outputs.has_changes == 'true'
-        run: |
-          # Fetch the base branch to ensure we can compare
-          git fetch origin ${{ steps.default-branch.outputs.base_branch }}
-          # Ensure we're on the feature branch with all commits
-          git checkout ${{ steps.issue.outputs.branch_name }}
-          # Verify commits exist
-          echo "Commits on feature branch:"
-          git log --oneline -5
-          echo "Commits ahead of base:"
-          git log origin/${{ steps.default-branch.outputs.base_branch }}..HEAD --oneline
-
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
@@ -144,8 +122,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.issue.outputs.branch_name }}
           base: ${{ steps.default-branch.outputs.base_branch }}
-          push: false
-          delete-branch: false
           title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
           body: |
             ## Issue Information
@@ -157,3 +133,5 @@ jobs:
 
             ---
             *This PR was automatically created by the Jira Codex workflow*
+          commit-message: "Implement: ${{ steps.issue.outputs.issue_key }} - ${{ steps.issue.outputs.issue_summary }}"
+          delete-branch: false
