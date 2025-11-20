@@ -19,11 +19,38 @@ on:
 jobs:
   implement:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - name: Checkout repository (gives Codex repo context)
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract issue data
+        id: issue
+        run: |
+          # Sanitize issue key and create branch name with codex- prefix
+          ISSUE_KEY=$(echo '${{ github.event.inputs.issue_key }}' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
+          echo "issue_key=${{ github.event.inputs.issue_key }}" >> $GITHUB_OUTPUT
+          echo "issue_summary=${{ github.event.inputs.issue_summary }}" >> $GITHUB_OUTPUT
+          {
+            echo 'issue_description<<DESC_DELIMITER'
+            printf '%s\n' '${{ github.event.inputs.issue_description }}'
+            echo 'DESC_DELIMITER'
+          } >> $GITHUB_OUTPUT
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create branch
+        run: |
+          git checkout -b ${{ steps.issue.outputs.branch_name }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -44,14 +71,52 @@ jobs:
       - name: Run codex implementation
         id: codex
         env:
-          ISSUE_KEY: ${{ github.event.inputs.issue_key }}
-          ISSUE_SUMMARY: ${{ github.event.inputs.issue_summary }}
-          ISSUE_DESCRIPTION: ${{ github.event.inputs.issue_description }}
+          ISSUE_KEY: ${{ steps.issue.outputs.issue_key }}
+          ISSUE_SUMMARY: ${{ steps.issue.outputs.issue_summary }}
+          ISSUE_DESCRIPTION: ${{ steps.issue.outputs.issue_description }}
           CI: true
         run: |
           # Build the prompt inline to keep formatting without writing a file
           PROMPT=$(printf "Issue: %s - %s\n\n%s\n" "$ISSUE_KEY" "$ISSUE_SUMMARY" "$ISSUE_DESCRIPTION")
 
-          # Run codex cloud exec with environment ID. Because the repo is checked out,
-          # codex cloud has the repository context available for the run.
-          codex cloud exec --env Doc-rag-agent "$PROMPT"
+          # Run codex exec with the prompt. Because the repo is checked out,
+          # codex has the repository context available for the run.
+          codex exec --full-auto "$PROMPT"
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git add .
+          git commit -m "Implement: ${{ steps.issue.outputs.issue_key }} - ${{ steps.issue.outputs.issue_summary }}"
+
+      - name: Push branch
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git push origin ${{ steps.issue.outputs.branch_name }}
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ steps.issue.outputs.branch_name }}
+          title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
+          body: |
+            ## Issue Information
+            - **Issue Key:** ${{ steps.issue.outputs.issue_key }}
+            - **Summary:** ${{ steps.issue.outputs.issue_summary }}
+
+            ## Description
+            ${{ steps.issue.outputs.issue_description }}
+
+            ---
+            *This PR was automatically created by the Jira Codex workflow*

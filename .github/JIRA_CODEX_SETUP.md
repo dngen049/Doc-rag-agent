@@ -105,7 +105,7 @@ The workflow requires an OpenAI API key to authenticate with codex. You need to 
    - **Value**: Your OpenAI API key (starts with `sk-...`)
    - Click **Add secret**
 
-   > **Note**: The workflow uses `OPENAI_API_KEY` to authenticate with codex using `codex login --with-api-key`. The Codex environment ID is hardcoded as `Doc-rag-agent` in the workflow.
+   > **Note**: The workflow uses `OPENAI_API_KEY` to authenticate with codex using `codex login --with-api-key`, then runs `codex exec` with the issue prompt.
 
 ## Jira Webhook Configuration
 
@@ -196,9 +196,11 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
 2. Add the "codex" label to the issue
 3. Check the GitHub Actions tab to see if the workflow runs
 4. The workflow will:
+   - Create a branch named `codex-{issue-key}` (e.g., `codex-kan-11`)
    - Install codex and authenticate
-   - Run `codex cloud exec` with the issue description in the cloud environment
-   - The codex agent will work directly in the cloud environment (no local checkout or commits)
+   - Run `codex exec --full-auto` with the issue description as the prompt
+   - Commit any changes made by codex
+   - Push the branch and create a pull request automatically
 
 ## Troubleshooting
 
@@ -222,16 +224,22 @@ The workflow uses GitHub's `workflow_dispatch` event, which requires:
   - Check that the `OPENAI_API_KEY` secret is set correctly
   - Verify the API key format (should start with `sk-`)
   - Ensure the API key has the necessary permissions for codex
-- **Codex cloud exec fails**:
-  - Verify that the environment ID `Doc-rag-agent` is valid and accessible
-  - Check that you have permissions to use the cloud environment
+- **Codex exec fails**:
+  - Verify that the repository was checked out successfully
+  - Check that codex has the necessary permissions to read the repository files
+  - Ensure the prompt is properly formatted
+- **Branch creation fails**: Ensure the issue key doesn't contain invalid characters (they'll be sanitized)
+- **No PR created**: If codex doesn't make any changes, no commit or PR will be created
 - **Codex not found**: The workflow installs codex using `npm i -g @openai/codex`. If codex installation fails, verify the package name and npm access.
 
 ## Workflow Behavior
 
-- The workflow runs `codex cloud exec` in a cloud environment
-- Codex works directly in the cloud environment - no local checkout, commits, or pull requests are created
-- The issue description is passed as the prompt to codex
+- The workflow creates branches with the pattern: `codex-{issue-key}`
+- Runs `codex exec --full-auto` with the issue description as the prompt
+- If codex makes changes, they are committed and pushed
+- A pull request is automatically created with the issue information
+- The PR title format: `[{ISSUE_KEY}] {ISSUE_SUMMARY}`
+- The PR includes the issue description in the body
 
 ## Testing with curl
 
