@@ -124,12 +124,18 @@ jobs:
         run: |
           git push origin ${{ steps.issue.outputs.branch_name }}
 
-      - name: Debug branch info
+      - name: Prepare for PR creation
         if: steps.changes.outputs.has_changes == 'true'
         run: |
-          echo "Feature branch: ${{ steps.issue.outputs.branch_name }}"
-          echo "Base branch: ${{ steps.default-branch.outputs.base_branch }}"
-          echo "Current branch: $(git branch --show-current)"
+          # Fetch the base branch to ensure we can compare
+          git fetch origin ${{ steps.default-branch.outputs.base_branch }}
+          # Ensure we're on the feature branch with all commits
+          git checkout ${{ steps.issue.outputs.branch_name }}
+          # Verify commits exist
+          echo "Commits on feature branch:"
+          git log --oneline -5
+          echo "Commits ahead of base:"
+          git log origin/${{ steps.default-branch.outputs.base_branch }}..HEAD --oneline
 
       - name: Create Pull Request
         if: steps.changes.outputs.has_changes == 'true'
@@ -138,6 +144,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.issue.outputs.branch_name }}
           base: ${{ steps.default-branch.outputs.base_branch }}
+          push: false
+          delete-branch: false
           title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
           body: |
             ## Issue Information
