@@ -32,6 +32,10 @@ jobs:
       - name: Extract issue data
         id: issue
         run: |
+          # Get the default branch name (fallback to 'main' if detection fails)
+          DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+          echo "base_branch=$DEFAULT_BRANCH" >> $GITHUB_OUTPUT
+
           # Sanitize issue key and create branch name with codex- prefix
           ISSUE_KEY=$(echo '${{ github.event.inputs.issue_key }}' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
           echo "branch_name=codex-$ISSUE_KEY" >> $GITHUB_OUTPUT
@@ -109,6 +113,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ steps.issue.outputs.branch_name }}
+          base: ${{ steps.issue.outputs.base_branch }}
           title: "[${{ steps.issue.outputs.issue_key }}] ${{ steps.issue.outputs.issue_summary }}"
           body: |
             ## Issue Information
