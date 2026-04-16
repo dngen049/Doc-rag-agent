@@ -10,6 +10,10 @@ jobs:
   backend-change-detection:
     name: Detect Backend Changes
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
     steps:
       - name: Checkout PR
         uses: actions/checkout@v4
