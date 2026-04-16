@@ -57,12 +57,14 @@ jobs:
               ? ['safe-frontend-only']
               : ['needs-backend-review'];
 
+            const prNumber = context.payload.pull_request.number;
+
             for (const label of labelsToRemove) {
               try {
                 await github.rest.issues.removeLabel({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
-                  issue_number: context.issue.number,
+                  issue_number: prNumber,
                   name: label
                 });
               } catch (e) {
@@ -74,7 +76,7 @@ jobs:
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: prNumber,
               labels: labels
             });
 
@@ -104,7 +106,7 @@ jobs:
             const { data: reviews } = await github.rest.pulls.listReviews({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.issue.number
+              pull_number: context.payload.pull_request.number
             });
 
             const hasApproval = reviews.some(review => review.state === 'APPROVED');
@@ -127,6 +129,6 @@ jobs:
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
+              issue_number: context.payload.pull_request.number,
               body: '🤖 **Auto-merge enabled!** This PR will automatically merge when:\n- ✅ All required checks pass\n- ✅ Branch is up to date with `master`\n\n_This is a frontend-only change from agent-bender._'
             });
