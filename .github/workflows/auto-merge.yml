@@ -10,6 +10,8 @@ jobs:
   backend-change-detection:
     name: Detect Backend Changes
     runs-on: ubuntu-latest
+    outputs:
+      has_backend_changes: ${{ steps.backend_check.outputs.has_backend_changes }}
     permissions:
       contents: read
       issues: write
@@ -80,11 +82,36 @@ jobs:
               labels: labels
             });
 
-      - name: Fail check if backend changes detected
-        if: steps.backend_check.outputs.has_backend_changes == 'true'
+  disable-auto-merge:
+    name: Disable Auto-Merge
+    runs-on: ubuntu-latest
+    needs: backend-change-detection
+    if: needs.backend-change-detection.outputs.has_backend_changes == 'true'
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Disable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
         run: |
-          echo "::error::Backend changes detected - auto-merge blocked"
-          exit 1
+          gh pr merge --disable-auto "$PR_URL" || true
+          echo "🚫 Auto-merge disabled - package.json changes require manual review" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: '🚫 **Auto-merge disabled!** This PR contains changes to `package.json` and requires manual review before merging.'
+            });
 
   enable-auto-merge:
     name: Enable Auto-Merge
